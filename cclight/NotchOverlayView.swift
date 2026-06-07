@@ -220,10 +220,11 @@ final class NotchOverlayView: NSView {
             // Green — your turn, Claude ready.
             return NSColor(red: 95/255.0, green: 207/255.0, blue: 122/255.0, alpha: 1).cgColor
         case .attention:
-            // Cyan-blue #4DA6FF — Claude paused for your input (Notification
-            // hook). Distinct from quiet "waiting" so the user knows it's
-            // actionable, not just done.
-            return NSColor(red: 77/255.0, green: 166/255.0, blue: 255/255.0, alpha: 1).cgColor
+            // Green #5FCF7A — Claude paused for your input (Notification hook).
+            // Same green as "waiting" by design: blue/green were hard to tell
+            // apart, so attention now shares the color and is distinguished by
+            // its faster pulse cadence and chime instead.
+            return NSColor(red: 95/255.0, green: 207/255.0, blue: 122/255.0, alpha: 1).cgColor
         case .idle:
             // White — fully done / inactive.
             return NSColor.white.cgColor

@@ -49,7 +49,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             switch state {
             case .working:   NSColor(red: 255/255, green: 176/255, blue: 0/255, alpha: 1).setFill()
             case .waiting:   NSColor(red: 95/255, green: 207/255, blue: 122/255, alpha: 1).setFill()
-            case .attention: NSColor(red: 77/255, green: 166/255, blue: 255/255, alpha: 1).setFill()
+            case .attention: NSColor(red: 95/255, green: 207/255, blue: 122/255, alpha: 1).setFill()
             case .idle:      NSColor.white.setFill()
             }
             NSBezierPath(ovalIn: dotRect).fill()
@@ -164,7 +164,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             case .waiting:
                 NSColor(red: 95/255, green: 207/255, blue: 122/255, alpha: 1).setFill()
             case .attention:
-                NSColor(red: 77/255, green: 166/255, blue: 255/255, alpha: 1).setFill()
+                NSColor(red: 95/255, green: 207/255, blue: 122/255, alpha: 1).setFill()
             case .idle:
                 NSColor.white.setFill()
             }
