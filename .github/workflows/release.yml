@@ -83,9 +83,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          ditto -c -k --keepParent build/CCLight.app \
-            "build/CCLight-${TAG}.zip"
+          mkdir -p build/dmg-staging
+          cp -r build/CCLight.app build/dmg-staging/CCLight.app
+          ln -s /Applications build/dmg-staging/Applications
+          hdiutil create \
+            -volname "CCLight ${TAG}" \
+            -srcfolder build/dmg-staging \
+            -ov -format UDZO \
+            "build/CCLight-${TAG}.dmg"
           gh release create "$TAG" \
-            "build/CCLight-${TAG}.zip" \
+            "build/CCLight-${TAG}.dmg" \
             --title "CCLight ${TAG}" \
             --generate-notes
