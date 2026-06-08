@@ -103,7 +103,7 @@ enum FirstRun {
         do {
             try HookInstaller.install(
                 settingsURL: settingsURL,
-                binaryPath: "/Applications/CCLight.app/Contents/Resources/cclight"
+                binaryPath: "/Applications/CCLight.app/Contents/MacOS/cclightcli"
             )
             return true
         } catch {
