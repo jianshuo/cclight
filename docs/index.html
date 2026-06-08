@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CCLight — Your MacBook notch tells you when Claude is thinking</title>
   <meta name="description" content="CCLight paints Claude Code's state onto your MacBook notch. No windows, no notifications — just light." />
-  <meta name="theme-color" content="#0a0a0b" />
+  <meta name="theme-color" content="#fafaf8" />
 
   <meta property="og:title" content="CCLight" />
   <meta property="og:description" content="Your MacBook notch tells you when Claude is thinking. No windows, no notifications — just light." />
-  <meta property="og:image" content="https://jianshuo.github.io/cclight/og.png" />
-  <meta property="og:url" content="https://jianshuo.github.io/cclight/" />
+  <meta property="og:image" content="https://cclight.jianshuo.dev/og.png" />
+  <meta property="og:url" content="https://cclight.jianshuo.dev/" />
   <meta name="twitter:card" content="summary_large_image" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <script>document.documentElement.classList.add('js');</script>
 
@@ -24,29 +24,37 @@
        tokens
     ────────────────────────────────────────────── */
     :root {
-      --bg:           #0a0a0b;
-      --bg-tint:      #101012;
-      --surface:      #141416;
-      --hairline:     #1f1f22;
-      --hairline-2:   #2a2a2e;
-      --ink:          #f5f5f4;
-      --ink-2:        #b9b9b3;
-      --ink-3:        #76766f;
-      --ink-4:        #44443f;
+      --bg:           #fafaf8;
+      --bg-warm:      #f5f4f0;
+      --surface:      #eeecea;
+      --hairline:     #e0ddd8;
+      --hairline-2:   #ccc9c2;
+      --ink:          #1a1917;
+      --ink-2:        #4a4844;
+      --ink-3:        #8a8780;
+      --ink-4:        #b8b5ae;
 
-      --amber:        #ffb000;
-      --green:        #5fcf7a;
-      --white:        #ffffff;
+      --amber:        #e8920a;
+      --amber-light:  #fff0d4;
+      --amber-mid:    #fcd58a;
+      --green:        #2aad5a;
+      --green-light:  #d5f5e3;
+      --white-state:  #a0a09a;
 
       --state:        var(--amber);
-      --state-soft:   rgba(255, 176, 0, 0.18);
+      --state-soft:   rgba(232, 146, 10, 0.14);
       --state-label:  "Working";
 
-      --serif: "Instrument Serif", "Iowan Old Style", "Apple Garamond", Georgia, serif;
-      --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      --serif: "DM Serif Display", "Iowan Old Style", "Apple Garamond", Georgia, serif;
+      --mono:  "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      --sans:  "Syne", ui-sans-serif, system-ui, sans-serif;
 
-      --max:   1240px;
+      --max:   1280px;
       --gutter: 6vw;
+
+      --radius-sm: 4px;
+      --radius-md: 12px;
+      --radius-lg: 24px;
     }
 
     /* ─────────────────────────────────────────────
@@ -66,16 +74,16 @@
       min-height: 100vh;
     }
 
-    /* subtle grain on the dark background so it doesn't look flat */
+    /* Paper-like warm texture */
     body::before {
       content: "";
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 100;
-      opacity: 0.035;
-      mix-blend-mode: overlay;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      opacity: 0.025;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.25  0 0 0 0 0.15  0 0 0 0.4 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
     }
 
     a { color: inherit; text-decoration: none; }
@@ -100,24 +108,25 @@
 
     .section-label {
       display: flex;
-      align-items: baseline;
-      gap: 14px;
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.18em;
+      align-items: center;
+      gap: 16px;
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--ink-3);
-      margin-bottom: 36px;
+      margin-bottom: 48px;
     }
     .section-label .num {
+      font-family: var(--mono);
       color: var(--ink-4);
-      font-variant-numeric: tabular-nums;
+      font-size: 11px;
     }
     .section-label .bar {
       flex: 1;
       height: 1px;
       background: var(--hairline);
-      transform: translateY(-3px);
     }
 
     /* ─────────────────────────────────────────────
@@ -127,9 +136,9 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 50;
-      backdrop-filter: blur(16px) saturate(140%);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
-      background: rgba(10, 10, 11, 0.6);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      background: rgba(250, 250, 248, 0.82);
       border-bottom: 1px solid transparent;
       transition: border-color 0.3s, background 0.3s;
     }
@@ -138,102 +147,111 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-block: 18px;
+      padding-block: 16px;
     }
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-family: var(--mono);
-      font-weight: 600;
-      font-size: 13px;
-      letter-spacing: 0.18em;
+      gap: 10px;
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      color: var(--ink);
     }
     .brand-dot {
-      width: 8px; height: 8px;
+      width: 9px; height: 9px;
       border-radius: 50%;
       background: var(--state);
-      box-shadow: 0 0 8px var(--state), 0 0 16px var(--state-soft);
+      box-shadow: 0 0 0 3px var(--state-soft);
+      transition: background 0.8s ease, box-shadow 0.8s ease;
       animation: brandPulse 3.2s ease-in-out infinite;
     }
     @keyframes brandPulse {
-      0%, 100% { opacity: 1; }
-      50%      { opacity: 0.55; }
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.7; transform: scale(0.88); }
     }
     nav.top .links {
-      display: flex; gap: 28px;
-      font-family: var(--mono);
+      display: flex; gap: 32px;
+      font-family: var(--sans);
       font-size: 12px;
-      letter-spacing: 0.12em;
+      font-weight: 500;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--ink-2);
+      color: var(--ink-3);
     }
     nav.top .links a {
-      position: relative;
       transition: color 0.2s;
     }
     nav.top .links a:hover { color: var(--ink); }
     nav.top .links a.cta {
       color: var(--amber);
+      font-weight: 700;
     }
-    nav.top .links a.cta::after {
-      content: "↓";
-      margin-left: 6px;
-      display: inline-block;
-      transition: transform 0.2s;
-    }
-    nav.top .links a.cta:hover::after { transform: translateY(2px); }
+    nav.top .links a.cta:hover { color: #c07800; }
 
     /* ─────────────────────────────────────────────
        hero
     ────────────────────────────────────────────── */
     .hero {
       position: relative;
-      padding-top: 96px;
-      padding-bottom: 120px;
+      padding-top: 104px;
+      padding-bottom: 140px;
       overflow: hidden;
       isolation: isolate;
     }
-    /* soft ambient halo behind the notch — colored by current state */
-    .hero::before {
+
+    /* warm ambient behind notch */
+    .hero::after {
       content: "";
       position: absolute;
-      top: -120px; left: 50%;
-      width: 1200px; height: 600px;
+      top: -60px; left: 50%;
+      width: 900px; height: 500px;
       transform: translateX(-50%);
-      background: radial-gradient(50% 60% at 50% 50%, var(--state-soft), transparent 70%);
-      filter: blur(40px);
-      opacity: 0.9;
+      background: radial-gradient(50% 60% at 50% 40%, var(--state-soft), transparent 72%);
+      filter: blur(30px);
       z-index: -1;
       transition: background 1.2s ease;
       pointer-events: none;
     }
 
-    /* the simulated MacBook lid top — a subtle horizontal bezel hint */
+    /* subtle top gradient wash */
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, #f8f6f1 0%, transparent 40%);
+      z-index: -2;
+    }
+
+    /* the MacBook lid simulation */
     .lid {
       position: relative;
       width: 100%;
-      max-width: 920px;
-      margin: 0 auto 64px;
-      height: 110px;
+      max-width: 960px;
+      margin: 0 auto 72px;
+      height: 120px;
       display: flex;
       justify-content: center;
     }
-    .lid::before, .lid::after {
-      content: "";
+    .lid-line {
       position: absolute;
-      top: 0;
+      top: 0; left: 4%; right: 4%;
       height: 1px;
-      background: linear-gradient(90deg, transparent, var(--hairline-2) 30%, var(--hairline-2) 70%, transparent);
+      background: linear-gradient(90deg, transparent 0%, var(--hairline-2) 20%, var(--hairline-2) 80%, transparent 100%);
     }
-    .lid::before { left: 0; right: 0; }
-    .lid::after  { left: 5%; right: 5%; top: 1px; opacity: 0.4; }
+    .lid-line-inner {
+      position: absolute;
+      top: 0; left: 10%; right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.04) 30%, rgba(0,0,0,0.04) 70%, transparent 100%);
+    }
 
-    /* the notch widget itself */
+    /* notch widget */
     .notch {
       position: relative;
-      width: 380px;
-      height: 100px;
+      width: 400px;
+      height: 110px;
       display: flex;
       justify-content: center;
     }
@@ -251,18 +269,18 @@
       stroke-linejoin: round;
       transition: stroke 0.8s ease;
     }
-    .notch .core      { stroke-width: 1.6; }
-    .notch .g1        { stroke-width: 3;  opacity: 0.55; filter: blur(3px); }
-    .notch .g2        { stroke-width: 6;  opacity: 0.4;  filter: blur(7px); }
-    .notch .g3        { stroke-width: 10; opacity: 0.3;  filter: blur(14px); }
-    .notch .g4        { stroke-width: 16; opacity: 0.22; filter: blur(28px); }
-    .notch .g5        { stroke-width: 24; opacity: 0.14; filter: blur(50px); }
-    .notch .body      { fill: #000; }
+    .notch .core { stroke-width: 1.6; }
+    .notch .g1   { stroke-width: 3;  opacity: 0.50; filter: blur(3px); }
+    .notch .g2   { stroke-width: 6;  opacity: 0.35; filter: blur(7px); }
+    .notch .g3   { stroke-width: 10; opacity: 0.25; filter: blur(14px); }
+    .notch .g4   { stroke-width: 16; opacity: 0.18; filter: blur(28px); }
+    .notch .g5   { stroke-width: 24; opacity: 0.12; filter: blur(50px); }
+    .notch .body { fill: #111; }
 
     /* hero copy */
     .hero-copy {
       text-align: center;
-      max-width: 920px;
+      max-width: 960px;
       margin: 0 auto;
       padding-inline: var(--gutter);
     }
@@ -270,35 +288,36 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      font-family: var(--mono);
+      font-family: var(--sans);
       font-size: 11px;
-      letter-spacing: 0.22em;
+      font-weight: 600;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--ink-3);
-      padding: 7px 14px;
+      padding: 7px 16px;
+      background: var(--surface);
       border: 1px solid var(--hairline);
       border-radius: 100px;
-      margin-bottom: 36px;
-      transition: border-color 0.8s ease, color 0.8s ease;
+      margin-bottom: 40px;
+      transition: border-color 0.8s ease;
     }
     .eyebrow .state-dot {
       width: 7px; height: 7px;
       border-radius: 50%;
       background: var(--state);
-      box-shadow: 0 0 6px var(--state);
+      box-shadow: 0 0 5px var(--state);
       transition: background 0.8s ease, box-shadow 0.8s ease;
     }
     .eyebrow .state-label {
       color: var(--state);
-      font-weight: 500;
       transition: color 0.8s ease;
     }
 
     h1.headline {
       font-family: var(--serif);
       font-weight: 400;
-      font-size: clamp(40px, 7vw, 92px);
-      line-height: 1.02;
+      font-size: clamp(44px, 7.5vw, 100px);
+      line-height: 1.0;
       letter-spacing: -0.02em;
       color: var(--ink);
       margin: 0 0 28px;
@@ -312,77 +331,90 @@
     .sub {
       font-family: var(--mono);
       font-size: 15px;
-      line-height: 1.65;
+      font-weight: 300;
+      line-height: 1.7;
       color: var(--ink-2);
-      max-width: 540px;
-      margin: 0 auto 40px;
+      max-width: 520px;
+      margin: 0 auto 44px;
     }
 
     .hero-ctas {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
       margin-bottom: 28px;
     }
     .btn {
-      font-family: var(--mono);
+      font-family: var(--sans);
       font-size: 13px;
-      letter-spacing: 0.08em;
-      padding: 14px 22px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 14px 24px;
       border-radius: 100px;
-      border: 1px solid var(--hairline-2);
+      border: 1.5px solid var(--hairline-2);
       color: var(--ink);
+      background: var(--bg);
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      transition: transform 0.15s ease, background 0.2s, border-color 0.2s, color 0.2s;
+      transition: transform 0.15s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
-    .btn:hover { transform: translateY(-1px); border-color: var(--ink-3); }
+    .btn:hover {
+      transform: translateY(-1px);
+      background: var(--bg-warm);
+      border-color: var(--hairline-2);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+    }
     .btn .arrow {
       display: inline-block;
       transition: transform 0.2s;
     }
     .btn:hover .arrow { transform: translate(2px, -2px); }
+
     .btn.primary {
       background: var(--amber);
-      color: #1a0f00;
+      color: #fff;
       border-color: var(--amber);
-      box-shadow: 0 0 0 0 var(--state-soft), 0 10px 30px -10px rgba(255, 176, 0, 0.5);
+      box-shadow: 0 4px 20px rgba(232, 146, 10, 0.3), 0 1px 3px rgba(232, 146, 10, 0.4);
     }
     .btn.primary:hover {
-      background: #ffc233;
-      border-color: #ffc233;
+      background: #d0820a;
+      border-color: #d0820a;
+      box-shadow: 0 6px 28px rgba(232, 146, 10, 0.4), 0 2px 6px rgba(232, 146, 10, 0.3);
     }
 
     .hero-meta {
       font-family: var(--mono);
       font-size: 11px;
-      letter-spacing: 0.16em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: var(--ink-3);
+      color: var(--ink-4);
       display: inline-flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
       justify-content: center;
     }
-    .hero-meta .sep { color: var(--ink-4); }
+    .hero-meta .sep { color: var(--hairline-2); }
 
     /* ─────────────────────────────────────────────
-       demo (landscape promo video)
+       demo video
     ────────────────────────────────────────────── */
     section.demo {
-      padding-block: 96px;
+      padding-block: 100px;
       border-top: 1px solid var(--hairline);
+      background: var(--bg-warm);
     }
     .demo-frame {
       max-width: 1080px;
       margin: 0 auto;
       border: 1px solid var(--hairline);
-      background: #000;
+      border-radius: var(--radius-md);
+      background: var(--surface);
       overflow: hidden;
       position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
     }
     .demo-frame video {
       display: block;
@@ -391,22 +423,18 @@
     }
     .demo-frame figcaption {
       font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.12em;
       color: var(--ink-3);
       padding: 18px 24px;
       border-top: 1px solid var(--hairline);
       text-align: center;
-      background: rgba(10, 10, 11, 0.6);
+      background: var(--bg);
     }
-    .demo-frame figcaption strong {
-      color: var(--ink-2);
-      font-weight: 500;
-    }
+    .demo-frame figcaption strong { color: var(--ink-2); font-weight: 500; }
 
     /* ─────────────────────────────────────────────
-       states section
+       states
     ────────────────────────────────────────────── */
     section.states {
       padding-block: 120px;
@@ -417,20 +445,23 @@
       grid-template-columns: 1fr 1fr;
       gap: 80px;
       align-items: end;
-      margin-bottom: 80px;
+      margin-bottom: 64px;
     }
     .states-intro h2 {
       font-family: var(--serif);
       font-weight: 400;
-      font-size: clamp(32px, 4vw, 52px);
-      line-height: 1.08;
+      font-size: clamp(34px, 4.2vw, 56px);
+      line-height: 1.06;
       letter-spacing: -0.015em;
       margin: 0;
+      color: var(--ink);
     }
     .states-intro h2 em { font-style: italic; }
     .states-intro p {
+      font-family: var(--mono);
       font-size: 14px;
-      line-height: 1.65;
+      font-weight: 300;
+      line-height: 1.7;
       color: var(--ink-2);
       max-width: 380px;
       margin: 0;
@@ -441,75 +472,78 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 0;
       border: 1px solid var(--hairline);
-      border-radius: 0;
+      border-radius: var(--radius-md);
+      overflow: hidden;
     }
     .state-card {
-      padding: 44px 36px 38px;
+      padding: 48px 40px 42px;
       border-right: 1px solid var(--hairline);
       cursor: pointer;
       position: relative;
       transition: background 0.3s;
+      text-align: left;
     }
     .state-card:last-child { border-right: none; }
-    .state-card:hover { background: var(--bg-tint); }
-
+    .state-card:hover { background: var(--bg-warm); }
     .state-card[data-active="true"] {
-      background: var(--bg-tint);
+      background: var(--bg-warm);
     }
     .state-card[data-active="true"]::before {
       content: "";
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 1px;
+      height: 3px;
       background: var(--card-color);
-      box-shadow: 0 0 12px var(--card-color);
+      opacity: 0.85;
     }
 
     .state-card .swatch {
-      width: 12px; height: 12px;
+      width: 14px; height: 14px;
       border-radius: 50%;
       background: var(--card-color);
-      box-shadow: 0 0 16px var(--card-color);
-      margin-bottom: 28px;
+      box-shadow: 0 0 12px var(--card-color), 0 0 24px color-mix(in srgb, var(--card-color) 40%, transparent);
+      margin-bottom: 32px;
     }
     .state-card h3 {
       font-family: var(--serif);
       font-style: italic;
       font-weight: 400;
-      font-size: 36px;
-      margin: 0 0 14px;
+      font-size: 40px;
+      margin: 0 0 10px;
       letter-spacing: -0.01em;
       color: var(--card-color);
+      line-height: 1;
     }
     .state-card .hex {
       font-family: var(--mono);
       font-size: 11px;
       letter-spacing: 0.14em;
-      color: var(--ink-3);
-      margin-bottom: 24px;
+      text-transform: uppercase;
+      color: var(--ink-4);
+      margin-bottom: 20px;
       display: block;
     }
     .state-card p {
       font-family: var(--mono);
       font-size: 13px;
+      font-weight: 300;
       line-height: 1.65;
       color: var(--ink-2);
       margin: 0;
     }
     .state-card .micro {
       font-size: 11px;
-      color: var(--ink-3);
-      margin-top: 18px;
-      letter-spacing: 0.04em;
+      color: var(--ink-4);
+      margin-top: 16px;
+      font-style: italic;
     }
 
-    /* state card themed accent vars */
     .state-card.working { --card-color: var(--amber); }
     .state-card.waiting { --card-color: var(--green); }
-    .state-card.idle    { --card-color: var(--white); }
+    .state-card.idle    { --card-color: var(--white-state); }
 
     .hover-hint {
-      margin-top: 22px;
+      margin-top: 20px;
       font-family: var(--mono);
       font-size: 11px;
       letter-spacing: 0.14em;
@@ -524,11 +558,11 @@
     section.multi {
       padding-block: 120px;
       border-top: 1px solid var(--hairline);
-      background: linear-gradient(180deg, var(--bg) 0%, #08080a 100%);
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-warm) 100%);
     }
     .multi-head {
       display: grid;
-      grid-template-columns: 1.1fr 1fr;
+      grid-template-columns: 1.15fr 1fr;
       gap: 80px;
       align-items: start;
       margin-bottom: 72px;
@@ -536,15 +570,17 @@
     .multi-head h2 {
       font-family: var(--serif);
       font-weight: 400;
-      font-size: clamp(32px, 4vw, 52px);
-      line-height: 1.08;
+      font-size: clamp(32px, 4vw, 54px);
+      line-height: 1.06;
       letter-spacing: -0.015em;
       margin: 0;
     }
     .multi-head h2 em { font-style: italic; color: var(--green); }
     .multi-head p {
+      font-family: var(--mono);
       font-size: 14px;
-      line-height: 1.65;
+      font-weight: 300;
+      line-height: 1.7;
       color: var(--ink-2);
       margin: 0;
     }
@@ -553,48 +589,56 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 36px;
-      padding: 64px 32px 48px;
+      gap: 32px;
+      padding: 56px 32px 44px;
       border: 1px solid var(--hairline);
-      background: rgba(10, 10, 11, 0.5);
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.05);
     }
     .multi-stage .lid-mini {
       width: 100%;
-      max-width: 720px;
-      height: 92px;
+      max-width: 760px;
+      height: 100px;
       position: relative;
       display: flex;
       justify-content: center;
-      border-top: 1px solid var(--hairline-2);
-      padding-top: 0;
     }
+    .lid-mini-line {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--hairline-2) 20%, var(--hairline-2) 80%, transparent 100%);
+    }
+
     .multi-toggle {
       display: inline-flex;
       gap: 0;
-      border: 1px solid var(--hairline);
+      border: 1.5px solid var(--hairline);
       border-radius: 100px;
       padding: 4px;
+      background: var(--bg-warm);
     }
     .multi-toggle button {
-      font-family: var(--mono);
+      font-family: var(--sans);
       font-size: 12px;
+      font-weight: 600;
       letter-spacing: 0.06em;
-      padding: 8px 18px;
+      padding: 8px 20px;
       border-radius: 100px;
       color: var(--ink-3);
-      transition: background 0.2s, color 0.2s;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
     }
     .multi-toggle button.active {
-      background: var(--ink);
-      color: var(--bg);
-    }
-    .multi-toggle button:hover:not(.active) {
+      background: var(--bg);
       color: var(--ink);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }
+    .multi-toggle button:hover:not(.active) { color: var(--ink); }
     .multi-stage .caption {
       font-family: var(--mono);
       font-size: 11px;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
       color: var(--ink-3);
     }
@@ -604,7 +648,7 @@
     }
 
     /* ─────────────────────────────────────────────
-       why / quotes
+       why
     ────────────────────────────────────────────── */
     section.why {
       padding-block: 140px;
@@ -619,29 +663,31 @@
     .why-grid .left h2 {
       font-family: var(--serif);
       font-weight: 400;
-      font-size: clamp(40px, 5vw, 64px);
-      line-height: 1.02;
+      font-size: clamp(40px, 5vw, 68px);
+      line-height: 1.0;
       margin: 0 0 24px;
       letter-spacing: -0.02em;
     }
     .why-grid .left h2 em { font-style: italic; color: var(--amber); }
     .why-grid .left .kicker {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.2em;
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--ink-3);
-      margin-bottom: 28px;
+      margin-bottom: 24px;
+      display: block;
     }
     .why-grid .right {
       display: flex;
       flex-direction: column;
-      gap: 36px;
+      gap: 32px;
     }
     .why-grid .right p {
       font-family: var(--serif);
       font-size: clamp(20px, 2.3vw, 28px);
-      line-height: 1.4;
+      line-height: 1.42;
       color: var(--ink);
       margin: 0;
       letter-spacing: -0.005em;
@@ -651,17 +697,17 @@
     .why-grid .right p em { font-style: italic; }
 
     /* ─────────────────────────────────────────────
-       specs / tech
+       specs
     ────────────────────────────────────────────── */
     section.specs {
       padding-block: 120px;
       border-top: 1px solid var(--hairline);
-      background: #070708;
+      background: var(--bg-warm);
     }
     .specs h2 {
       font-family: var(--serif);
       font-weight: 400;
-      font-size: clamp(28px, 3.4vw, 44px);
+      font-size: clamp(28px, 3.4vw, 46px);
       line-height: 1.08;
       letter-spacing: -0.015em;
       margin: 0 0 64px;
@@ -673,17 +719,22 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 0;
-      border-top: 1px solid var(--hairline);
-      border-left: 1px solid var(--hairline);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
     .spec {
       padding: 32px 28px;
       border-right: 1px solid var(--hairline);
       border-bottom: 1px solid var(--hairline);
     }
+    .spec:nth-child(4n) { border-right: none; }
     .spec .label {
-      font-family: var(--mono);
+      font-family: var(--sans);
       font-size: 10px;
+      font-weight: 600;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--ink-3);
@@ -691,7 +742,7 @@
     }
     .spec .value {
       font-family: var(--serif);
-      font-size: 26px;
+      font-size: 28px;
       line-height: 1.2;
       color: var(--ink);
       letter-spacing: -0.01em;
@@ -701,26 +752,29 @@
       font-size: 12px;
       color: var(--ink-3);
       margin-left: 4px;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
     }
     .spec .note {
       font-family: var(--mono);
       font-size: 11px;
+      font-weight: 300;
       color: var(--ink-3);
-      margin-top: 12px;
-      line-height: 1.5;
+      margin-top: 10px;
+      line-height: 1.55;
     }
 
     .hooks-block {
-      margin-top: 64px;
-      padding: 32px;
+      margin-top: 56px;
+      padding: 36px;
       border: 1px solid var(--hairline);
-      background: rgba(20, 20, 22, 0.4);
-      border-radius: 0;
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
     .hooks-block .label {
-      font-family: var(--mono);
+      font-family: var(--sans);
       font-size: 10px;
+      font-weight: 600;
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--ink-3);
@@ -734,20 +788,19 @@
       color: var(--ink-2);
     }
     .hooks-table > div {
-      padding: 12px 0;
-      border-top: 1px dashed var(--hairline-2);
+      padding: 13px 0;
+      border-top: 1px solid var(--hairline);
     }
     .hooks-table > div:first-child,
     .hooks-table > div:nth-child(2) { border-top: none; }
-    .hooks-table .hook {
-      color: var(--ink);
-    }
+    .hooks-table .hook { color: var(--ink); }
     .hooks-table .cmd {
       color: var(--green);
+      font-weight: 400;
     }
 
     /* ─────────────────────────────────────────────
-       cta / install
+       install / CTA
     ────────────────────────────────────────────── */
     section.cta {
       padding-block: 160px;
@@ -761,62 +814,71 @@
       content: "";
       position: absolute;
       top: 50%; left: 50%;
-      width: 1400px; height: 800px;
-      transform: translate(-50%, -50%);
-      background: radial-gradient(50% 50% at 50% 50%, rgba(255, 176, 0, 0.12), transparent 70%);
+      width: 1200px; height: 700px;
+      transform: translate(-50%, -55%);
+      background: radial-gradient(50% 50% at 50% 50%, rgba(232, 146, 10, 0.08), transparent 72%);
       filter: blur(60px);
       z-index: -1;
     }
     section.cta h2 {
       font-family: var(--serif);
       font-weight: 400;
-      font-size: clamp(40px, 6vw, 80px);
-      line-height: 1;
+      font-size: clamp(40px, 6vw, 84px);
+      line-height: 1.0;
       letter-spacing: -0.02em;
-      margin: 0 0 32px;
+      margin: 0 0 28px;
       max-width: 800px;
       margin-inline: auto;
+      margin-bottom: 28px;
     }
     section.cta h2 em { font-style: italic; color: var(--amber); }
-    section.cta p {
+    section.cta > div > p {
       font-family: var(--mono);
       font-size: 14px;
+      font-weight: 300;
       color: var(--ink-2);
-      max-width: 480px;
+      max-width: 460px;
       margin: 0 auto 48px;
-      line-height: 1.65;
+      line-height: 1.7;
     }
+
     section.cta .terminal {
-      max-width: 540px;
+      max-width: 560px;
       margin: 56px auto 0;
       text-align: left;
       border: 1px solid var(--hairline);
-      background: rgba(0, 0, 0, 0.5);
+      border-radius: var(--radius-md);
+      background: var(--surface);
       font-family: var(--mono);
       font-size: 12px;
       color: var(--ink-2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      overflow: hidden;
     }
     section.cta .terminal .head {
-      padding: 10px 16px;
+      padding: 12px 18px;
       border-bottom: 1px solid var(--hairline);
       display: flex; align-items: center; gap: 8px;
       color: var(--ink-3);
       font-size: 11px;
       letter-spacing: 0.1em;
-      text-transform: uppercase;
+      background: var(--bg);
     }
-    section.cta .terminal .head .dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--hairline-2);
+    .term-btn {
+      width: 12px; height: 12px; border-radius: 50%;
     }
+    .term-btn.red    { background: #ff6058; }
+    .term-btn.yellow { background: #ffbe2e; }
+    .term-btn.green  { background: #28cc42; }
     section.cta .terminal pre {
       margin: 0;
-      padding: 18px 18px;
-      line-height: 1.7;
+      padding: 20px 20px;
+      line-height: 1.75;
       overflow-x: auto;
     }
-    section.cta .terminal .prompt { color: var(--green); }
-    section.cta .terminal .comment { color: var(--ink-3); }
+    section.cta .terminal .prompt { color: var(--amber); }
+    section.cta .terminal .comment { color: var(--ink-4); }
+    section.cta .terminal .cmd { color: var(--ink); }
 
     /* ─────────────────────────────────────────────
        footer
@@ -824,7 +886,7 @@
     footer {
       border-top: 1px solid var(--hairline);
       padding-block: 56px;
-      background: #050506;
+      background: var(--bg-warm);
     }
     footer .wrap {
       display: flex;
@@ -835,54 +897,61 @@
     }
     footer .col {
       font-family: var(--mono);
-      font-size: 12px;
+      font-size: 13px;
       color: var(--ink-3);
-      letter-spacing: 0.04em;
-      line-height: 1.8;
+      letter-spacing: 0.02em;
+      line-height: 2;
     }
     footer .col strong {
       display: block;
+      font-family: var(--sans);
       font-size: 10px;
-      letter-spacing: 0.22em;
+      font-weight: 700;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--ink-4);
-      font-weight: 500;
       margin-bottom: 10px;
     }
     footer .col a:hover { color: var(--ink); }
     footer .made {
-      max-width: 320px;
-      color: var(--ink-3);
+      max-width: 280px;
     }
-    footer .made em { font-family: var(--serif); font-style: italic; color: var(--ink-2); font-size: 14px; }
+    footer .made .mark {
+      font-family: var(--serif);
+      font-style: italic;
+      color: var(--ink-2);
+      font-size: 15px;
+      display: block;
+      margin-bottom: 8px;
+    }
 
     /* ─────────────────────────────────────────────
-       reveal on scroll — scoped to .js so no-JS falls back visible
+       scroll reveals
     ────────────────────────────────────────────── */
     .js .reveal {
       opacity: 0;
-      transform: translateY(16px);
-      transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+      transform: translateY(18px);
+      transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+                  transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
     }
     .js .reveal.in {
       opacity: 1;
       transform: translateY(0);
     }
     .reveal[data-delay="1"] { transition-delay: 0.08s; }
-    .reveal[data-delay="2"] { transition-delay: 0.16s; }
-    .reveal[data-delay="3"] { transition-delay: 0.24s; }
-    .reveal[data-delay="4"] { transition-delay: 0.32s; }
+    .reveal[data-delay="2"] { transition-delay: 0.17s; }
+    .reveal[data-delay="3"] { transition-delay: 0.26s; }
+    .reveal[data-delay="4"] { transition-delay: 0.35s; }
 
-    /* hero reveal sequence — fires on load */
     .hero .lid          { opacity: 0; animation: rise 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) 0.1s forwards; }
     .hero .eyebrow      { opacity: 0; animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.5s forwards; }
-    .hero .headline     { opacity: 0; animation: rise 1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.65s forwards; }
-    .hero .sub          { opacity: 0; animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.85s forwards; }
-    .hero .hero-ctas    { opacity: 0; animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 1.0s forwards; }
-    .hero .hero-meta    { opacity: 0; animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 1.15s forwards; }
+    .hero .headline     { opacity: 0; animation: rise 1.0s cubic-bezier(0.2, 0.7, 0.2, 1) 0.65s forwards; }
+    .hero .sub          { opacity: 0; animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.82s forwards; }
+    .hero .hero-ctas    { opacity: 0; animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.98s forwards; }
+    .hero .hero-meta    { opacity: 0; animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 1.12s forwards; }
 
     @keyframes rise {
-      from { opacity: 0; transform: translateY(14px); }
+      from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
@@ -898,10 +967,12 @@
       .state-card { border-right: none; border-bottom: 1px solid var(--hairline); }
       .state-card:last-child { border-bottom: none; }
       .spec-grid { grid-template-columns: repeat(2, 1fr); }
-      .hooks-table { grid-template-columns: 140px 1fr; font-size: 12px; }
+      .spec:nth-child(4n) { border-right: 1px solid var(--hairline); }
+      .spec:nth-child(2n) { border-right: none; }
+      .hooks-table { grid-template-columns: 150px 1fr; font-size: 12px; }
       nav.top .links a:not(.cta) { display: none; }
-      .hero { padding-top: 64px; padding-bottom: 72px; }
-      section.demo, section.states, section.multi, section.specs { padding-block: 64px; }
+      .hero { padding-top: 72px; padding-bottom: 80px; }
+      section.demo, section.states, section.multi, section.specs { padding-block: 72px; }
       section.cta { padding-block: 96px; }
       .notch { width: 280px; }
       .multi-stage { padding: 36px 16px 32px; }
@@ -919,7 +990,7 @@
 
   <nav class="top" id="topnav">
     <div class="wrap">
-      <a href="/cclight/" class="brand" aria-label="CCLight">
+      <a href="/" class="brand" aria-label="CCLight">
         <span class="brand-dot" aria-hidden="true"></span>
         <span>CCLIGHT</span>
       </a>
@@ -928,7 +999,7 @@
         <a href="#multi">Multi-session</a>
         <a href="#tech">Tech</a>
         <a href="https://github.com/jianshuo/cclight" target="_blank" rel="noopener">GitHub</a>
-        <a class="cta" href="https://github.com/jianshuo/cclight/releases/latest/download/CCLight.dmg">Download</a>
+        <a class="cta" href="https://github.com/jianshuo/cclight/releases/latest/download/CCLight.dmg">Download ↓</a>
       </div>
     </div>
   </nav>
@@ -936,12 +1007,11 @@
   <!-- ─────────────── HERO ─────────────── -->
   <header class="hero">
     <div class="lid">
+      <div class="lid-line"></div>
+      <div class="lid-line-inner"></div>
       <div class="notch" id="hero-notch">
-        <!-- viewBox 380x100; notch body roughly 320x40 with rounded bottom corners; U-light wraps the bottom -->
         <svg viewBox="-10 -10 400 110" width="400" height="110" aria-hidden="true">
-          <!-- the black notch shape -->
           <path class="body" d="M 30 -10 L 350 -10 L 350 26 Q 350 40 336 40 L 44 40 Q 30 40 30 26 Z" />
-          <!-- U-shaped light path: outside the notch, opens upward -->
           <g>
             <path class="glow g5" d="M 354 -10 L 354 26 Q 354 44 336 44 L 44 44 Q 26 44 26 26 L 26 -10" />
             <path class="glow g4" d="M 354 -10 L 354 26 Q 354 44 336 44 L 44 44 Q 26 44 26 26 L 26 -10" />
@@ -968,7 +1038,7 @@
       </h1>
 
       <p class="sub">
-        No windows. No notifications. No bouncing dock icons. Just a thin line of light around your notch, in three colors, in your peripheral vision.
+        No windows. No notifications. No bouncing dock icons. Just a thin line of light around your notch — in three colors, living in your peripheral vision.
       </p>
 
       <div class="hero-ctas">
@@ -1009,7 +1079,7 @@
           aria-label="CCLight running on a MacBook — the notch glows amber while Claude works, green when it's your turn."
         ></video>
         <figcaption>
-          <strong>Amber</strong> while Claude thinks. <strong>Green</strong> when it's your turn. <strong>Dim white</strong> when you've walked away.
+          <strong>Amber</strong> while Claude thinks · <strong>Green</strong> when it's your turn · <strong>Dim white</strong> when idle
         </figcaption>
       </figure>
     </div>
@@ -1024,10 +1094,10 @@
 
       <div class="states-intro">
         <h2 class="reveal">
-          A glance is enough. <em>Hover</em> a card to change the notch.
+          A glance is enough. <em>Hover a card</em> to change the notch.
         </h2>
         <p class="reveal" data-delay="1">
-          Every Claude Code session is in exactly one of three states. CCLight reduces them to color — the language your eyes already speak before they read.
+          Every Claude Code session lives in exactly one of three states. CCLight collapses them to light — the language your eyes already speak before they read.
         </p>
       </div>
 
@@ -1035,29 +1105,29 @@
         <button class="state-card working" data-state="working" data-active="true">
           <span class="swatch"></span>
           <h3>Working</h3>
-          <span class="hex">#FFB000 — AMBER</span>
-          <p>Claude is thinking, generating, running tools. Don't bother looking at the terminal; the notch will tell you when it's done.</p>
+          <span class="hex">#E8920A — Amber</span>
+          <p>Claude is thinking, generating, running tools. Don't bother looking at the terminal — the notch will tell you when it's done.</p>
           <p class="micro">Most of your time lives here.</p>
         </button>
 
         <button class="state-card waiting" data-state="waiting">
           <span class="swatch"></span>
           <h3>Waiting</h3>
-          <span class="hex">#5FCF7A — GREEN</span>
-          <p>Your turn to type. Claude is done, or it's asking a permission. After 5 minutes of inaction, this fades back to idle.</p>
+          <span class="hex">#2AAD5A — Green</span>
+          <p>Your turn to type. Claude is done or asking a permission. After 5 minutes of inaction, this fades back to idle.</p>
           <p class="micro">The only color that interrupts you.</p>
         </button>
 
         <button class="state-card idle" data-state="idle">
           <span class="swatch"></span>
           <h3>Idle</h3>
-          <span class="hex">#FFFFFF — DIM WHITE</span>
+          <span class="hex">#A0A09A — Dim white</span>
           <p>Session is open but nothing's happening. Or it's done and you've walked away. The light is barely there — present, but quiet.</p>
           <p class="micro">No glow. No demand. Just there.</p>
         </button>
       </div>
 
-      <p class="hover-hint">Hover the cards above ↑ &nbsp; the hero notch follows</p>
+      <p class="hover-hint reveal" data-delay="3">Hover the cards above — the hero notch follows</p>
     </div>
   </section>
 
@@ -1073,12 +1143,13 @@
           Four sessions, four segments. <em>One arc</em> of light.
         </h2>
         <p class="reveal" data-delay="1">
-          When you run multiple Claude Code sessions in parallel, the U-shape splits into segments — one per session, in the order they were opened, up to four. Each segment carries its own color and its own halo. The menu bar dot summarizes them: any working → amber; otherwise any waiting → green; all idle → white.
+          When you run multiple Claude Code sessions in parallel, the U-shape splits into segments — one per session, in the order they were opened, up to four. Each segment carries its own color and halo. The menu bar dot summarizes: any working → amber; otherwise any waiting → green; all idle → white.
         </p>
       </div>
 
       <div class="multi-stage reveal" data-delay="2">
         <div class="lid-mini">
+          <div class="lid-mini-line"></div>
           <div class="notch" id="multi-notch">
             <svg viewBox="-10 -10 400 110" width="400" height="110" aria-hidden="true">
               <path class="body" d="M 30 -10 L 350 -10 L 350 26 Q 350 40 336 40 L 44 40 Q 30 40 30 26 Z" />
@@ -1096,7 +1167,7 @@
 
         <div class="caption">
           Showing <strong id="multi-count">1</strong> active <span id="multi-noun">session</span>
-          <span class="sep" style="color: var(--ink-4)"> · </span>
+          <span style="color: var(--ink-4)"> · </span>
           colors assigned in open order
         </div>
       </div>
@@ -1112,7 +1183,7 @@
 
       <div class="why-grid">
         <div class="left">
-          <div class="kicker reveal">Notch as status line</div>
+          <span class="kicker reveal">Notch as status line</span>
           <h2 class="reveal" data-delay="1">
             In your <em>peripheral</em> vision.
           </h2>
@@ -1141,7 +1212,7 @@
       </div>
 
       <h2 class="reveal">
-        Native, local, <em>quiet</em>.<br />Zero telemetry, zero network.
+        Native, local, <em>quiet</em>.<br />Zero telemetry. Zero network.
       </h2>
 
       <div class="spec-grid reveal" data-delay="1">
@@ -1208,10 +1279,10 @@
         <em>Forever</em> to unsee.
       </h2>
       <p class="reveal" data-delay="1">
-        Open the DMG, drag CCLight to Applications, launch once, click <strong>Install Hooks</strong>. That's it.
+        Open the DMG, drag CCLight to Applications, launch once, click <strong>Install Hooks</strong>. Done.
       </p>
 
-      <div class="hero-ctas reveal" data-delay="2" style="margin-bottom: 0;">
+      <div class="hero-ctas reveal" data-delay="2">
         <a class="btn primary" href="https://github.com/jianshuo/cclight/releases/latest/download/CCLight.dmg">
           Download CCLight.dmg <span class="arrow">↓</span>
         </a>
@@ -1222,13 +1293,15 @@
 
       <div class="terminal reveal" data-delay="3">
         <div class="head">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span style="margin-left: 8px;">terminal · build from source</span>
+          <span class="term-btn red"></span>
+          <span class="term-btn yellow"></span>
+          <span class="term-btn green"></span>
+          <span style="margin-left: 10px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);">terminal · build from source</span>
         </div>
 <pre><span class="comment"># clone, build, and locally export a notarized DMG</span>
-<span class="prompt">$</span> git clone https://github.com/jianshuo/cclight.git
-<span class="prompt">$</span> cd cclight
-<span class="prompt">$</span> bash scripts/archive-and-export.sh --dmg
+<span class="prompt">$</span> <span class="cmd">git clone https://github.com/jianshuo/cclight.git</span>
+<span class="prompt">$</span> <span class="cmd">cd cclight</span>
+<span class="prompt">$</span> <span class="cmd">bash scripts/archive-and-export.sh --dmg</span>
 <span class="comment"># → build/export/CCLight.dmg</span></pre>
       </div>
     </div>
@@ -1239,7 +1312,7 @@
     <div class="wrap">
       <div class="col made">
         <strong>CCLight</strong>
-        <em>A peripheral status line for Claude Code.</em><br />
+        <span class="mark">A peripheral status line for Claude Code.</span>
         macOS 14+ · Apple Silicon · Free
       </div>
       <div class="col">
@@ -1262,9 +1335,9 @@
     // state cycling — drives the hero notch + brand dot
     // ─────────────────────────────────────────────
     const states = [
-      { id: "working", color: "#ffb000", soft: "rgba(255, 176, 0, 0.18)", label: "Working" },
-      { id: "waiting", color: "#5fcf7a", soft: "rgba(95, 207, 122, 0.18)", label: "Waiting" },
-      { id: "idle",    color: "#f5f5f4", soft: "rgba(255, 255, 255, 0.10)", label: "Idle" },
+      { id: "working", color: "#e8920a", soft: "rgba(232, 146, 10, 0.14)", label: "Working" },
+      { id: "waiting", color: "#2aad5a", soft: "rgba(42, 173, 90, 0.14)",  label: "Waiting" },
+      { id: "idle",    color: "#a0a09a", soft: "rgba(160, 160, 154, 0.10)", label: "Idle"   },
     ];
     const labelEl  = document.getElementById("hero-state-label");
     const root     = document.documentElement;
@@ -1285,13 +1358,12 @@
       cycleTimer = setInterval(() => {
         cycleIdx = (cycleIdx + 1) % states.length;
         applyState(states[cycleIdx]);
-      }, 2400);
+      }, 2600);
     }
     function stopCycle() {
       if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; }
     }
 
-    // hover on state card freezes the cycle to that state
     cards.forEach(card => {
       card.addEventListener("mouseenter", () => {
         locked = true;
@@ -1304,7 +1376,6 @@
         startCycle();
       });
       card.addEventListener("click", () => {
-        // also lock on click (touch / tap)
         const s = states.find(x => x.id === card.dataset.state);
         if (s) { cycleIdx = states.indexOf(s); applyState(s); }
         stopCycle();
@@ -1312,7 +1383,6 @@
       });
     });
 
-    // honor reduced motion
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       applyState(states[0]);
       startCycle();
@@ -1321,13 +1391,13 @@
     }
 
     // ─────────────────────────────────────────────
-    // multi-session toggle — paints N segments on the U-path
+    // multi-session segments
     // ─────────────────────────────────────────────
     const SEG_PATH  = "M 354 -10 L 354 26 Q 354 44 336 44 L 44 44 Q 26 44 26 26 L 26 -10";
     const SEG_HOST  = document.getElementById("multi-segments");
     const SEG_COUNT = document.getElementById("multi-count");
-    const SEG_COLS  = ["#ffb000", "#5fcf7a", "#ffb000", "#f5f5f4"];
-    // measure once
+    const SEG_COLS  = ["#e8920a", "#2aad5a", "#e8920a", "#a0a09a"];
+
     const measurer = document.createElementNS("http://www.w3.org/2000/svg", "path");
     measurer.setAttribute("d", SEG_PATH);
     document.body.appendChild(measurer);
@@ -1336,19 +1406,18 @@
 
     function paintSegments(n) {
       SEG_HOST.innerHTML = "";
-      const gap = 6;
+      const gap    = 6;
       const segLen = (TOTAL - gap * n) / n;
       for (let i = 0; i < n; i++) {
-        const color = SEG_COLS[i];
+        const color  = SEG_COLS[i];
         const offset = -(i * (segLen + gap));
-        // glow stack per segment
         const layers = [
-          { cls: "g5", w: 22, op: 0.14, blur: 50 },
-          { cls: "g4", w: 14, op: 0.22, blur: 28 },
-          { cls: "g3", w: 9,  op: 0.30, blur: 14 },
-          { cls: "g2", w: 5,  op: 0.40, blur: 7  },
-          { cls: "g1", w: 3,  op: 0.55, blur: 3  },
-          { cls: "core", w: 1.6, op: 1, blur: 0 },
+          { w: 22, op: 0.12, blur: 50 },
+          { w: 14, op: 0.18, blur: 28 },
+          { w: 9,  op: 0.26, blur: 14 },
+          { w: 5,  op: 0.36, blur: 7  },
+          { w: 3,  op: 0.50, blur: 3  },
+          { w: 1.6,op: 1.0, blur: 0  },
         ];
         layers.forEach(l => {
           const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -1380,7 +1449,7 @@
     paintSegments(1);
 
     // ─────────────────────────────────────────────
-    // scroll-triggered reveals
+    // scroll reveals
     // ─────────────────────────────────────────────
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => {
@@ -1389,16 +1458,15 @@
           io.unobserve(e.target);
         }
       });
-    }, { threshold: 0.15, rootMargin: "0px 0px -10% 0px" });
+    }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
     document.querySelectorAll(".reveal").forEach(el => io.observe(el));
 
     // ─────────────────────────────────────────────
-    // nav shadow on scroll
+    // nav border on scroll
     // ─────────────────────────────────────────────
     const nav = document.getElementById("topnav");
     const onScroll = () => {
-      if (window.scrollY > 8) nav.classList.add("scrolled");
-      else nav.classList.remove("scrolled");
+      nav.classList.toggle("scrolled", window.scrollY > 8);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
