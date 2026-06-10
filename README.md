@@ -168,6 +168,16 @@ docs/
 
 ---
 
+## Related tools
+
+| Tool | What it does |
+|------|-------------|
+| **cclight** ← you are here | MacBook notch glow tells you when Claude Code is thinking |
+| [**ccline**](https://github.com/jianshuo/ccline) | Type a thought at your zsh prompt — get an AI answer and run the command |
+| [**ccglass**](https://github.com/jianshuo/ccglass) | See exactly what your coding agent sends to the model |
+
+---
+
 ## License
 
 Personal project, all rights reserved.
