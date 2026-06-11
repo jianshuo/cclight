@@ -82,6 +82,12 @@ Mac, macOS 14+, Apple Silicon. Signed by Developer ID, notarized by Apple — Ga
 **正常用法 —** 点上方那颗橙色按钮（或 [Releases 页](https://github.com/jianshuo/cclight/releases/latest)），下载 `CCLight.dmg`，打开后把 CCLight 拖进 Applications，启动一次，在弹出的对话框里选 Install Hooks 就装好了。
 
 第一次启动会弹一个对话框问要不要把 hooks 写进 `~/.claude/settings.json`。选「Install」之后就生效了。
+也可以用 Homebrew 安装：
+
+```sh
+brew install --cask jianshuo/tap/cclight
+```
+
 也可以之后从菜单里 Install / Uninstall，或者命令行：
 
 ```bash
