@@ -10,6 +10,10 @@ final class NotchOverlayWindow: NSWindow {
             backing: .buffered,
             defer: false
         )
+        // We manage the window's lifetime via ARC + explicit close(); don't let
+        // close() also release it (would conflict with the strong reference held
+        // by AppDelegate and risk a double-free).
+        self.isReleasedWhenClosed = false
         self.isOpaque = false
         self.backgroundColor = .clear
         self.hasShadow = false
