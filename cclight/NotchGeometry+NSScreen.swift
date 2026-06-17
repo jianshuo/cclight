@@ -31,4 +31,23 @@ extension NotchGeometry {
             menuBarHeight: menuBarHeight
         )
     }
+
+    /// Width of the ambient top bar drawn on external (non-notched) displays:
+    /// ~40% of the screen width, clamped to a sane range so it neither
+    /// disappears on small monitors nor sprawls across ultrawides.
+    static func topBarWidth(for screen: NSScreen) -> CGFloat {
+        min(max(screen.frame.width * 0.4, 240), 720)
+    }
+
+    /// A zero-height rect centered on the screen's top edge, used as the basis
+    /// for the bar overlay window (expanded by `overlayWindowFrame`'s padding).
+    /// Mirrors how the notch overlay sits at `screen.frame.maxY`.
+    static func topBarRect(for screen: NSScreen, width: CGFloat) -> CGRect {
+        CGRect(
+            x: screen.frame.midX - width / 2,
+            y: screen.frame.maxY,
+            width: width,
+            height: 0
+        )
+    }
 }

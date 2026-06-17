@@ -21,6 +21,8 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     var isLaunchAtLoginOn: () -> Bool = { false }
     var onTogglePlaySounds: (() -> Void)?
     var isPlaySoundsOn: () -> Bool = { false }
+    var onToggleShowOnExternal: (() -> Void)?
+    var isShowOnExternalOn: () -> Bool = { false }
 
     init(store: StateStore) {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -134,6 +136,15 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         soundsItem.state = isPlaySoundsOn() ? .on : .off
         menu.addItem(soundsItem)
 
+        let externalItem = NSMenuItem(
+            title: "Show on External Monitors",
+            action: #selector(toggleShowOnExternal),
+            keyEquivalent: ""
+        )
+        externalItem.target = self
+        externalItem.state = isShowOnExternalOn() ? .on : .off
+        menu.addItem(externalItem)
+
         let about = NSMenuItem(title: "About CCLight", action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
@@ -190,6 +201,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     @objc private func uninstallHooks() { onUninstallHooks?() }
     @objc private func toggleLaunchAtLogin() { onToggleLaunchAtLogin?() }
     @objc private func togglePlaySounds() { onTogglePlaySounds?() }
+    @objc private func toggleShowOnExternal() { onToggleShowOnExternal?() }
 
     @objc private func showAbout() {
         NSApp.orderFrontStandardAboutPanel(nil)
