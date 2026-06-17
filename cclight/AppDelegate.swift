@@ -4,21 +4,29 @@ import CCLightCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var store: StateStore!
-    private var overlayWindow: NotchOverlayWindow!
-    private var overlayView: NotchOverlayView!
     private var menuBar: MenuBarController!
-    /// Geometry of the overlay currently on screen, used to dedupe redundant
-    /// rebuilds when screen-parameter notifications fire in bursts.
-    private var currentNotchFrame: CGRect?
+
+    /// One overlay per display we're currently lighting. Keyed by
+    /// CGDirectDisplayID so we can reconcile against the live display set on
+    /// every screen-parameters change (plug/unplug, primary swap, resolution).
+    /// `frame` is the overlay window's frame, kept for dedup so a burst of
+    /// notifications that doesn't actually move anything is a no-op.
+    private struct Overlay {
+        let window: NotchOverlayWindow
+        let view: NotchOverlayView
+        let displayID: CGDirectDisplayID
+        let frame: CGRect
+    }
+    private var overlays: [CGDirectDisplayID: Overlay] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         store = StateStore()
         store.start()
 
-        setupOverlay()
-        // Follow the notch when displays change — plug/unplug an external
-        // monitor, change the primary display, or alter resolution all post
-        // this. setupOverlay() re-picks the notched screen each time.
+        setupOverlays()
+        // Follow displays when they change — plug/unplug an external monitor,
+        // change the primary display, or alter resolution all post this.
+        // setupOverlays() reconciles the overlay set against the live screens.
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersChanged),
@@ -48,6 +56,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.onTogglePlaySounds = {
             SoundPlayer.enabled = !SoundPlayer.enabled
         }
+        menuBar.isShowOnExternalOn = { OverlayPreferences.showOnExternalDisplays }
+        menuBar.onToggleShowOnExternal = { [weak self] in
+            OverlayPreferences.showOnExternalDisplays.toggle()
+            self?.setupOverlays()
+        }
 
         DispatchQueue.main.async { [weak self] in self?.runFirstRunIfNeeded() }
     }
@@ -56,64 +69,104 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store?.stop()
     }
 
-    /// (Re)build the notch overlay on whichever connected display has a notch.
-    /// Idempotent — tears down any existing overlay first, and is a no-op when
-    /// the notch geometry is unchanged. If no notched display is attached the
-    /// overlay is removed entirely (e.g. clamshell into an external monitor).
-    private func setupOverlay() {
-        // The notch lives on the built-in display, which may NOT be NSScreen.main
-        // when an external monitor is the primary display. Prefer the first screen
-        // that actually reports a notch.
-        let notchedScreen = NSScreen.screens.first { NotchGeometry.notchRect(for: $0) != nil }
-        guard let screen = notchedScreen,
-              let notchRect = NotchGeometry.notchRect(for: screen) else {
-            teardownOverlay(reason: "no notched display attached; overlay removed")
-            return
-        }
-        // Skip the rebuild (and its flash) when nothing relevant moved.
-        if currentNotchFrame == notchRect, overlayWindow != nil { return }
-        // Geometry changed (or first build). Tear down the existing window FIRST —
-        // an ordered-in NSWindow lives in NSApp.windows even after we drop our
-        // reference, and would reappear when display coordinates shift back.
-        teardownOverlay(reason: nil)
-        currentNotchFrame = notchRect
+    /// The shape + window frame we want to draw on a given display.
+    private struct DesiredOverlay {
+        let shape: OverlayShape
+        let frame: CGRect
+    }
 
-        NSLog("cclight: notchRect=\(notchRect) on screen frame=\(screen.frame)")
-        let frame = NotchGeometry.overlayWindowFrame(notchRect: notchRect, glowPadding: 90)
+    /// Compute the overlay we want on each connected display:
+    /// - The built-in notched display gets the U-shape (it may NOT be
+    ///   `NSScreen.main` when an external is primary, so we detect it by notch).
+    /// - Every other (non-notched) display gets a centered top bar, but only
+    ///   when "Show on External Monitors" is enabled.
+    /// A Mac with no notch (e.g. desktop, older laptop) therefore lights all
+    /// its displays with bars when the toggle is on, and nothing when off.
+    private func desiredOverlays() -> [CGDirectDisplayID: DesiredOverlay] {
+        var desired: [CGDirectDisplayID: DesiredOverlay] = [:]
+        let showExternal = OverlayPreferences.showOnExternalDisplays
+        for screen in NSScreen.screens {
+            guard let id = displayID(of: screen) else { continue }
+            if let notchRect = NotchGeometry.notchRect(for: screen) {
+                let shape = OverlayShape.notch(notchRect.size)
+                let frame = NotchGeometry.overlayWindowFrame(notchRect: notchRect, glowPadding: shape.glowPadding)
+                desired[id] = DesiredOverlay(shape: shape, frame: frame)
+            } else if showExternal {
+                let width = NotchGeometry.topBarWidth(for: screen)
+                let barRect = NotchGeometry.topBarRect(for: screen, width: width)
+                let shape = OverlayShape.bar(width: width)
+                let frame = NotchGeometry.overlayWindowFrame(notchRect: barRect, glowPadding: shape.glowPadding)
+                desired[id] = DesiredOverlay(shape: shape, frame: frame)
+            }
+        }
+        return desired
+    }
+
+    /// Reconcile the live overlay windows against `desiredOverlays()`.
+    /// Idempotent: displays whose desired frame is unchanged keep their existing
+    /// window (no flash); displays that appeared/moved are (re)built; displays
+    /// that vanished or were disabled are torn down. Safe to call on launch and
+    /// on every screen-parameters / preference change.
+    private func setupOverlays() {
+        let desired = desiredOverlays()
+
+        // Tear down overlays that are no longer wanted, or whose geometry moved.
+        for (id, overlay) in overlays {
+            if let d = desired[id], d.frame == overlay.frame { continue }
+            teardownOverlay(displayID: id, reason: "display \(id) overlay removed/moved")
+        }
+
+        // Build overlays that are newly wanted (or were just torn down for a move).
+        for (id, d) in desired where overlays[id] == nil {
+            buildOverlay(displayID: id, shape: d.shape, frame: d.frame)
+        }
+    }
+
+    private func buildOverlay(displayID id: CGDirectDisplayID, shape: OverlayShape, frame: CGRect) {
+        NSLog("cclight: building overlay on display=\(id) shape=\(shape) frame=\(frame)")
         let window = NotchOverlayWindow(contentRect: frame)
-        let view = NotchOverlayView(notchSize: notchRect.size)
+        let view = NotchOverlayView(shape: shape)
         window.contentView = view
+        // Record before ordering in: didChangeScreenNotification can fire
+        // synchronously as the window lands on its screen, and the handler
+        // looks the window up in `overlays`.
+        overlays[id] = Overlay(window: window, view: view, displayID: id, frame: frame)
         window.orderFrontRegardless()
         view.bindSessions(store.$orderedSessionStates)
-        overlayWindow = window
-        overlayView = view
-        flashSelfTest()
+        flashSelfTest(view: view)
     }
 
     @objc private func screenParametersChanged() {
-        setupOverlay()
+        setupOverlays()
     }
 
-    @objc private func overlayWindowChangedScreen() {
-        guard let window = overlayWindow else { return }
-        // Only tear down when we KNOW the window has been parked on a screen
-        // with no notch (the orphan-reparent case). A transient nil screen
-        // during our own setup must not trigger a false teardown.
-        if let screen = window.screen, NotchGeometry.notchRect(for: screen) == nil {
-            teardownOverlay(reason: "overlay reparented onto non-notched display; hiding")
+    @objc private func overlayWindowChangedScreen(_ note: Notification) {
+        guard let window = note.object as? NotchOverlayWindow,
+              let overlay = overlays.first(where: { $0.value.window === window })?.value else { return }
+        // AppKit reparents a still-visible window onto a surviving display when
+        // its own display is pulled (e.g. lid close into clamshell), before the
+        // screen-parameters teardown runs — which would flash a stray overlay on
+        // the wrong screen. If the window has moved off the display we built it
+        // for, drop it now; setupOverlays() will rebuild correctly. A transient
+        // nil screen during our own setup must not trigger a false teardown.
+        if let currentID = window.screen.flatMap(displayID(of:)), currentID != overlay.displayID {
+            teardownOverlay(displayID: overlay.displayID, reason: "overlay reparented display \(overlay.displayID)→\(currentID); hiding")
         }
     }
 
-    /// Hide, close, and release the current overlay window. Closing (not just
+    /// Hide, close, and release one display's overlay window. Closing (not just
     /// dropping the reference) removes it from NSApp.windows so it can't be
     /// reparented back onto a display when coordinates shift.
-    private func teardownOverlay(reason: String?) {
-        if let reason, overlayWindow != nil { NSLog("cclight: \(reason)") }
-        overlayWindow?.orderOut(nil)
-        overlayWindow?.close()
-        overlayWindow = nil
-        overlayView = nil
-        currentNotchFrame = nil
+    private func teardownOverlay(displayID id: CGDirectDisplayID, reason: String?) {
+        guard let overlay = overlays.removeValue(forKey: id) else { return }
+        if let reason { NSLog("cclight: \(reason)") }
+        overlay.window.orderOut(nil)
+        overlay.window.close()
+    }
+
+    /// CGDirectDisplayID backing an NSScreen, the stable key we reconcile on.
+    private func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
+        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }
 
     private func runFirstRunIfNeeded() {
@@ -165,11 +218,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = FirstRun.uninstallHooks()
     }
 
-    private func flashSelfTest() {
-        guard let overlayView = overlayView else { return }
-        overlayView.previewState(.working)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.overlayView?.previewState(self?.store.currentState ?? .idle)
+    private func flashSelfTest(view: NotchOverlayView) {
+        view.previewState(.working)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self, weak view] in
+            view?.previewState(self?.store.currentState ?? .idle)
         }
     }
 }
